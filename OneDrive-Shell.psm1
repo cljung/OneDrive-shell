@@ -302,6 +302,28 @@ function cmd-dir {
     List-OneDriveFolder -DriveId $DriveId -Path $path
 }
 
+function normalize-path {
+    param (
+        [string]$Path
+    )
+    $parts = $Path.Split("/", [StringSplitOptions]::RemoveEmptyEntries)
+    $i = 0
+    while ($i -lt $parts.Length) {
+        if ($parts[$i] -eq ".") {
+            $parts = $parts[0..($i-1)] + $parts[($i+1)..($parts.Length-1)]
+        } elseif ($parts[$i] -eq "..") {
+            if ($i -gt 0) {
+                $parts = $parts[0..($i-2)] + $parts[($i+1)..($parts.Length-1)]
+                $i -= 2
+            } else {
+                $parts = $parts[1..($parts.Length-1)]
+            }
+        } else {
+            $i++
+        }
+    }
+    return $parts -join "/"
+}
 function cmd-cd {
     param (
         [string[]]$args
@@ -343,7 +365,7 @@ function cmd-cd {
             return $newPath
         }
     }
-    return $newPath
+    return normalize-path -Path $newPath
 }
 function cmd-md {
     param (
@@ -453,7 +475,7 @@ function cmd-download {
     }
     $Force = $args -contains "-f" -or $args -contains "--force"
     if ( $Item.Folder.ChildCount -eq $null) {
-        if $LocalPath.EndsWith("/") {
+        if ( $LocalPath.EndsWith("/") ) {
             $LocalPath = Join-Path -Path $LocalPath -ChildPath $Name
         }
         Download-OneDriveFileToLocal -DriveId $DriveId -Item $Item -LocalFilePath $LocalPath -Force:$Force
