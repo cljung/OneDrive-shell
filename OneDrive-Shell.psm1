@@ -406,8 +406,6 @@ function cmd-del {
         Write-Host "Usage: rd <path>" -ForegroundColor Red
         return ""
     }
-    write-host $args[0]
-    write-host $args[1]
     $Force = $args -contains "-f" -or $args -contains "--force"
     cmd-delete -Path $args[0] -IsFile:$true -Force:$Force
 }
