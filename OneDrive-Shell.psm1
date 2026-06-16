@@ -422,10 +422,6 @@ function cmd-download {
     }
     $Path = $args[0]
     $Name = Split-Path -Path $Path -Leaf -Resolve:$false
-    $LocalPath = "./$Name"
-    if ($args.Length -ge 2 -and !$args[1].StartsWith("-")) {
-        $LocalPath = $args[1]
-    }
     if ($Path.StartsWith(".") -or $Path.StartsWith("..")) {
         Write-Host "Relative path not allowed" -ForegroundColor Red
         return ""
@@ -433,11 +429,20 @@ function cmd-download {
     if (!$Path.StartsWith("/")) {
         $Path = "$cwd/$Path"
     }
+
+    $LocalPath = "./$Name"
+    if ($args.Length -ge 2 -and !$args[1].StartsWith("-")) {
+        $LocalPath = $args[1]
+    }
     if ( $LocalPath -eq ".") {
         $LocalPath = (Get-Location).Path
     }
     if ( $LocalPath.StartsWith("./") ) {
         $LocalPath = (Get-Location).Path + "\" + $LocalPath.Substring(2)
+    }
+    # check $LocalPath is an existing folder, then append trailing "/""
+    if (Test-Path -Path $LocalPath -PathType Container) {
+        $LocalPath = $LocalPath.TrimEnd("/") + "/"
     }
     $odPath = $Path
     if (!$odPath.StartsWith("root:")) {
@@ -449,8 +454,10 @@ function cmd-download {
         return
     }
     $Force = $args -contains "-f" -or $args -contains "--force"
-    #write-host "Path: $Path, LocalPath: $LocalPath, IsFolder: $($Item.Folder.ChildCount -ne $null)"
     if ( $Item.Folder.ChildCount -eq $null) {
+        if $LocalPath.EndsWith("/") {
+            $LocalPath = Join-Path -Path $LocalPath -ChildPath $Name
+        }
         Download-OneDriveFileToLocal -DriveId $DriveId -Item $Item -LocalFilePath $LocalPath -Force:$Force
     } else {
         Download-OneDriveFolderToLocal -DriveId $DriveId -Path $Path -LocalPath $LocalPath -Force:$Force
